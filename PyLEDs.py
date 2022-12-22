@@ -1,38 +1,44 @@
 import board
 import neopixel
-import time
-import signal
-from sys import exit
+import paho.mqtt.client as paho
 
+# callback executed when a new MQTT message is received
+# Check the msg object and take a corresponding action
+def on_message(mosq, obj, msg):
+    receivedPayload = str(msg.payload)
+    print("%s" % receivedPayload)
+    mosq.publish('home/office/LED/state', 'msg.payload', 0)
+
+    if "ON" in receivedPayload:
+        pixels.fill((0, 0, 255))
+    else:
+        pixels.fill((0, 0, 0))
+
+# callback executed when a new MQTT message is send
+def on_publish(mosq, obj, mid):
+    pass
+
+# define neopixel object. It is connected to 
+# D12 pin and the size of the strip is 30 pixels
+# TODO make the arguments configurable
 pixels = neopixel.NeoPixel(board.D12, 30)
 
-def exit_handler(signal_received, frame):
-    pixels.fill((0, 0, 0))
-    print("Script terminated!")
-    exit(0)
+# define MQTT client object and corresponding callbacks
+client = paho.Client()
+client.on_message = on_message
+client.on_publish = on_publish
 
-if __name__ == '__main__':
-    # Tell Python to run the handler() function when SIGINT is recieved
-    signal.signal(signal.SIGINT, exit_handler) # ctlr + c
-    signal.signal(signal.SIGTSTP, exit_handler) # ctlr + z
+# connect to the broker
+# used broker is Mosquitto. More information on the following link:
+# https://mosquitto.org
+# It is currently installed on a linux server
+# TODO make the following arguments configurable
+client.connect("192.168.0.102", 1883, 60)
 
-    while True:
-        print("Start blinking different colors")
-        # Pass through different colors ... just for test :)
-        pixels.fill((0, 0, 255))
-        time.sleep(0.5)
-        pixels.fill((0, 255, 0))
-        time.sleep(0.5)
-        pixels.fill((0, 255, 255))
-        time.sleep(0.5)
-        pixels.fill((255, 0, 0))
-        time.sleep(0.5)
-        pixels.fill((255, 0, 255))
-        time.sleep(0.5)
-        pixels.fill((255, 255, 0))
-        time.sleep(0.5)
-        pixels.fill((255, 255, 255))
-        time.sleep(0.5)
+# subscribe to the topic for controlling the LEDs state
+# possible states are ON and OFF
+client.subscribe("home/office/LED", 0)
 
-else :
-    print("Error: name is not main!")
+# endless loop to wait for MQTT messages
+while client.loop() == 0:
+    pass
