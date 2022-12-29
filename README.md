@@ -5,5 +5,5 @@ Each folder is a subproject for different platform
 ## Raspberry
 Python script made for Raspberry Pi
 
-## ESP32
+## ESP8266
 C++ Firmware for ESP8266
